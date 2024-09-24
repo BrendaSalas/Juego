@@ -142,7 +142,8 @@ def show_instructions():
         "2. Evita las paredes.",
         "3. Gana puntos por completar el laberinto.",
         "4. Llega a la línea de meta para avanzar.",
-        "5. ¡Buena suerte!"
+        "5. ¡Buena suerte!",
+        "Presiona 'Esc' para regresar al menú principal."
     ]
     for i, line in enumerate(instructions):
         text = font_medium.render(line, True, TEXT_COLOR)
@@ -208,6 +209,7 @@ def main_menu(game_scores):
     return game_scores
 
 
+# Función principal
 def main():
     running = True
     in_menu = True
@@ -230,6 +232,9 @@ def main():
                         game = Game(player_name)
                         game.scores_per_level = game_scores  # Cargar puntajes previos
                         game.show_score_table()
+                else:
+                    if event.key == pygame.K_ESCAPE:  # Si se presiona 'Esc', regresa al menú principal
+                        in_menu = True
 
         if in_menu:
             game_scores = main_menu(game_scores)
