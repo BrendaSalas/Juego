@@ -186,6 +186,7 @@ def get_player_name():
     return name
 
 
+
 # Menú principal
 def main_menu(game_scores):
     while True:
