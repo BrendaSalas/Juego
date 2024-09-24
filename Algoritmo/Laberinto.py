@@ -49,8 +49,8 @@ class Maze:
         self.create_maze()
 
     def create_maze(self):
-        # Genera un laberinto simple aleatorio con bloques
-        for _ in range(100):  # número de paredes
+        # Genera un laberinto sencillo
+        for _ in range(30):  # número de paredes (menor cantidad para un laberinto más sencillo)
             x = random.randint(0, SCREEN_WIDTH // 20 - 1) * 20
             y = random.randint(0, (SCREEN_HEIGHT - HEADER_HEIGHT) // 20 - 1) * 20 + HEADER_HEIGHT  # Ajusta la altura
             self.walls.append(pygame.Rect(x, y, 20, 20))
@@ -70,6 +70,7 @@ class Game:
         self.game_over = False
         self.player_name = player_name
         self.scores_per_level = []  # Lista para almacenar los puntajes por nivel
+        self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)  # Línea de meta
 
     def reset(self):
         # Almacena el puntaje actual en la lista antes de resetear
@@ -86,6 +87,11 @@ class Game:
                 self.game_over = True
                 break
 
+    def check_finish(self):
+        # Verifica si el jugador ha alcanzado la línea de meta
+        if self.player.rect.colliderect(self.finish_line):
+            self.reset()  # Reinicia el juego al llegar a la meta
+
     def update(self):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
@@ -98,6 +104,7 @@ class Game:
             self.player.move(0, PLAYER_SPEED)
 
         self.check_collision()
+        self.check_finish()
 
     def draw(self):
         screen.fill(PINK_BACKGROUND)  # Cambia el fondo del juego al color rosa
@@ -105,6 +112,7 @@ class Game:
         pygame.draw.rect(screen, WHITE, (0, 0, SCREEN_WIDTH, HEADER_HEIGHT))
         self.maze.draw(screen)
         self.player.draw(screen)
+        pygame.draw.rect(screen, RED, self.finish_line)  # Dibuja la línea de meta
         self.draw_score()
 
     def draw_score(self):
@@ -133,7 +141,8 @@ def show_instructions():
         "1. Usa las teclas de flecha para moverte.",
         "2. Evita las paredes.",
         "3. Gana puntos por completar el laberinto.",
-        "4. ¡Buena suerte!"
+        "4. Llega a la línea de meta para avanzar.",
+        "5. ¡Buena suerte!"
     ]
     for i, line in enumerate(instructions):
         text = font_medium.render(line, True, TEXT_COLOR)
@@ -174,7 +183,7 @@ def get_player_name():
 
 
 # Menú principal
-def main_menu():
+def main_menu(game_scores):
     screen.fill(PINK_BACKGROUND)  # Cambia el fondo del menú al color rosa
     title = font_large.render("PinkMaze", True, TEXT_COLOR)  # Título más grande
     title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))  # Centrar el título
@@ -189,13 +198,21 @@ def main_menu():
         center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))  # Centrar la opción
     screen.blit(instructions_button, instructions_rect)
 
+    scores_button = font_medium.render("Ver tabla de puntajes (3)", True, TEXT_COLOR)
+    scores_rect = scores_button.get_rect(
+        center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))  # Nueva opción para ver puntajes
+    screen.blit(scores_button, scores_rect)
+
     pygame.display.flip()
+
+    return game_scores
 
 
 def main():
     running = True
     in_menu = True
     player_name = ""
+    game_scores = []
 
     while running:
         for event in pygame.event.get():
@@ -209,9 +226,13 @@ def main():
                         in_menu = False  # Iniciar juego
                     elif event.key == pygame.K_2:
                         show_instructions()
+                    elif event.key == pygame.K_3:  # Nueva opción para ver puntajes
+                        game = Game(player_name)
+                        game.scores_per_level = game_scores  # Cargar puntajes previos
+                        game.show_score_table()
 
         if in_menu:
-            main_menu()
+            game_scores = main_menu(game_scores)
         else:
             game = Game(player_name)
             while not game.game_over:
@@ -220,9 +241,10 @@ def main():
                 pygame.display.flip()
                 pygame.time.Clock().tick(60)
 
-            # Mostrar tabla de puntajes al final
+            # Mostrar tabla de puntajes al final y almacenar los puntajes
             game.show_score_table()
-            running = False  # Termina el juego cuando se pierde
+            game_scores = game.scores_per_level  # Almacenar puntajes al final
+            in_menu = True  # Regresar al menú
 
     pygame.quit()
 
