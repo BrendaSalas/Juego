@@ -26,6 +26,10 @@ font_medium = pygame.font.SysFont('Arial', 36)  # Fuente mediana para el resto
 PLAYER_SPEED = 5
 HEADER_HEIGHT = 50  # Altura del área del encabezado
 
+# FPS (Frames por segundo)
+FPS = 60
+clock = pygame.time.Clock()
+
 
 # Clase para el Jugador
 class Player:
@@ -175,40 +179,43 @@ def get_player_name():
                 if event.key == pygame.K_RETURN and len(name) == 5:
                     input_active = False  # Sale del bucle si el nombre tiene 5 letras
                 elif event.key == pygame.K_BACKSPACE:
-                    name = name[:-1]  # Borra el último carácter
+                    name = name[:-1]
                 elif len(name) < 5 and event.unicode.isalpha():
-                    name += event.unicode.upper()  # Añade la letra en mayúsculas
+                    name += event.unicode.upper()
 
     return name
 
 
 # Menú principal
 def main_menu(game_scores):
-    screen.fill(PINK_BACKGROUND)  # Cambia el fondo del menú al color rosa
-    title = font_large.render("PinkMaze", True, TEXT_COLOR)  # Título más grande
-    title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))  # Centrar el título
-    screen.blit(title, title_rect)
+    while True:
+        screen.fill(PINK_BACKGROUND)  # Cambia el fondo del menú al color rosa
+        title = font_large.render("PinkMaze", True, TEXT_COLOR)
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))  # Centrar el título
+        screen.blit(title, title_rect)
 
-    start_button = font_medium.render("Comenzar nueva partida (1)", True, TEXT_COLOR)
-    start_rect = start_button.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))  # Centrar la opción
-    screen.blit(start_button, start_rect)
+        options = ["Comenzar nueva partida (1)", "Instrucciones (2)", "Ver puntajes (3)"]  # Nuevas opciones
+        for i, option in enumerate(options):
+            text = font_medium.render(option, True, TEXT_COLOR)
+            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 200 + i * 50))  # Centrar las opciones
+            screen.blit(text, text_rect)
 
-    instructions_button = font_medium.render("Instrucciones (2)", True, TEXT_COLOR)
-    instructions_rect = instructions_button.get_rect(
-        center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))  # Centrar la opción
-    screen.blit(instructions_button, instructions_rect)
+        pygame.display.flip()
 
-    scores_button = font_medium.render("Ver tabla de puntajes (3)", True, TEXT_COLOR)
-    scores_rect = scores_button.get_rect(
-        center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))  # Nueva opción para ver puntajes
-    screen.blit(scores_button, scores_rect)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    return game_scores  # Sale del menú y empieza el juego
+                elif event.key == pygame.K_2:
+                    show_instructions()
+                elif event.key == pygame.K_3:
+                    show_score_table(game_scores)
 
-    pygame.display.flip()
 
-    return game_scores
-
-
-# Función principal
+# Iniciar el juego
 def main():
     running = True
     in_menu = True
@@ -244,7 +251,7 @@ def main():
                 game.update(keys)  # Actualiza el juego con las teclas presionadas
                 game.draw()
                 pygame.display.flip()
-                pygame.time.Clock().tick(60)
+                clock.tick(FPS)  # Controlar el FPS
 
             # Mostrar tabla de puntajes al final y almacenar los puntajes
             game.show_score_table()
