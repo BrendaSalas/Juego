@@ -52,7 +52,7 @@ class Maze:
         # Genera un laberinto sencillo
         for _ in range(30):  # número de paredes (menor cantidad para un laberinto más sencillo)
             x = random.randint(0, SCREEN_WIDTH // 20 - 1) * 20
-            y = random.randint(0, (SCREEN_HEIGHT - HEADER_HEIGHT) // 20 - 1) * 20 + HEADER_HEIGHT  # Ajusta la altura
+            y = random.randint(HEADER_HEIGHT // 20, (SCREEN_HEIGHT - HEADER_HEIGHT) // 20 - 1) * 20 + HEADER_HEIGHT
             self.walls.append(pygame.Rect(x, y, 20, 20))
 
     def draw(self, screen):
@@ -92,8 +92,7 @@ class Game:
         if self.player.rect.colliderect(self.finish_line):
             self.reset()  # Reinicia el juego al llegar a la meta
 
-    def update(self):
-        keys = pygame.key.get_pressed()
+    def update(self, keys):
         if keys[pygame.K_LEFT]:
             self.player.move(-PLAYER_SPEED, 0)
         if keys[pygame.K_RIGHT]:
@@ -217,6 +216,7 @@ def main():
     game_scores = []
 
     while running:
+        keys = pygame.key.get_pressed()  # Captura las teclas presionadas
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -241,7 +241,7 @@ def main():
         else:
             game = Game(player_name)
             while not game.game_over:
-                game.update()
+                game.update(keys)  # Actualiza el juego con las teclas presionadas
                 game.draw()
                 pygame.display.flip()
                 pygame.time.Clock().tick(60)
