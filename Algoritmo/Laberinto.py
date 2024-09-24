@@ -18,12 +18,9 @@ RED = (255, 0, 0)
 PINK_BACKGROUND = (255, 203, 220)  # Color de fondo #ffcbdc
 TEXT_COLOR = (213, 0, 69)  # Color del texto
 
-# Fuente: Cargar Pixel Operator
-try:
-    font = pygame.font.Font('PixelOperator.ttf', 36)  # Asegúrate de tener el archivo en la misma carpeta
-except FileNotFoundError:
-    font = pygame.font.SysFont('Arial', 36)  # Usa Arial como fuente por defecto
-    print("No se encontró 'PixelOperator.ttf', se está usando Arial como fuente por defecto.")
+# Fuente: Usar fuente del sistema
+font_large = pygame.font.SysFont('Arial', 50)  # Fuente grande para el título
+font_medium = pygame.font.SysFont('Arial', 36)  # Fuente mediana para el resto
 
 # Velocidad del jugador
 PLAYER_SPEED = 5
@@ -111,17 +108,18 @@ class Game:
         self.draw_score()
 
     def draw_score(self):
-        score_text = font.render(f"{self.player_name} - Nivel: {self.level} - Puntos: {self.score}", True, TEXT_COLOR)
+        score_text = font_medium.render(f"{self.player_name} - Nivel: {self.level} - Puntos: {self.score}", True,
+                                        TEXT_COLOR)
         screen.blit(score_text, (10, 10))
 
     def show_score_table(self):
         screen.fill(PINK_BACKGROUND)  # Cambia el fondo de la tabla de puntajes al color rosa
-        title = font.render("Tabla de Puntajes", True, TEXT_COLOR)
+        title = font_medium.render("Tabla de Puntajes", True, TEXT_COLOR)
         screen.blit(title, (SCREEN_WIDTH // 2 - 100, 20))
 
         # Mostrar los puntajes obtenidos en cada nivel
         for i, score in enumerate(self.scores_per_level):
-            level_text = font.render(f"Nivel {i + 1}: {score} puntos", True, TEXT_COLOR)
+            level_text = font_medium.render(f"Nivel {i + 1}: {score} puntos", True, TEXT_COLOR)
             screen.blit(level_text, (SCREEN_WIDTH // 2 - 100, 80 + i * 40))
 
         pygame.display.flip()
@@ -138,7 +136,7 @@ def show_instructions():
         "4. ¡Buena suerte!"
     ]
     for i, line in enumerate(instructions):
-        text = font.render(line, True, TEXT_COLOR)
+        text = font_medium.render(line, True, TEXT_COLOR)
         text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 50 + i * 40))  # Alinear al centro
         screen.blit(text, text_rect)
     pygame.display.flip()
@@ -152,10 +150,10 @@ def get_player_name():
 
     while input_active:
         screen.fill(PINK_BACKGROUND)  # Cambia el fondo del nombre al color rosa
-        prompt = font.render("Nombre del jugador:", True, TEXT_COLOR)  # Cambiado el texto
+        prompt = font_medium.render("Nombre del jugador:", True, TEXT_COLOR)  # Cambiado el texto
         screen.blit(prompt, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 50))
 
-        name_text = font.render(name, True, TEXT_COLOR)
+        name_text = font_medium.render(name, True, TEXT_COLOR)
         screen.blit(name_text, (SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2))
 
         pygame.display.flip()
@@ -178,16 +176,15 @@ def get_player_name():
 # Menú principal
 def main_menu():
     screen.fill(PINK_BACKGROUND)  # Cambia el fondo del menú al color rosa
-    title = font.render("PinkMaze", True, TEXT_COLOR)  # Cambia el nombre del juego
+    title = font_large.render("PinkMaze", True, TEXT_COLOR)  # Título más grande
     title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))  # Centrar el título
-    title = pygame.font.Font('PixelOperator.ttf', 50).render("PinkMaze", True, TEXT_COLOR)  # Título más grande
     screen.blit(title, title_rect)
 
-    start_button = font.render("Comenzar nueva partida (1)", True, TEXT_COLOR)
+    start_button = font_medium.render("Comenzar nueva partida (1)", True, TEXT_COLOR)
     start_rect = start_button.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))  # Centrar la opción
     screen.blit(start_button, start_rect)
 
-    instructions_button = font.render("Instrucciones (2)", True, TEXT_COLOR)
+    instructions_button = font_medium.render("Instrucciones (2)", True, TEXT_COLOR)
     instructions_rect = instructions_button.get_rect(
         center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))  # Centrar la opción
     screen.blit(instructions_button, instructions_rect)
