@@ -53,11 +53,10 @@ class Maze:
         self.create_maze()
 
     def create_maze(self):
-        # Genera un laberinto sencillo
-        for _ in range(30):  # número de paredes (menor cantidad para un laberinto más sencillo)
-            x = random.randint(0, SCREEN_WIDTH // 20 - 1) * 20
-            y = random.randint(HEADER_HEIGHT // 20, (SCREEN_HEIGHT - HEADER_HEIGHT) // 20 - 1) * 20 + HEADER_HEIGHT
-            self.walls.append(pygame.Rect(x, y, 20, 20))
+        # Genera un laberinto muy sencillo
+        # Solo un par de paredes para crear un camino
+        self.walls.append(pygame.Rect(100, HEADER_HEIGHT + 100, 200, 20))  # Una pared horizontal
+        self.walls.append(pygame.Rect(300, HEADER_HEIGHT + 100, 20, 200))  # Una pared vertical
 
     def draw(self, screen):
         for wall in self.walls:
@@ -236,9 +235,7 @@ def main():
                     elif event.key == pygame.K_2:
                         show_instructions()
                     elif event.key == pygame.K_3:  # Nueva opción para ver puntajes
-                        game = Game(player_name)
-                        game.scores_per_level = game_scores  # Cargar puntajes previos
-                        game.show_score_table()
+                        show_score_table(game_scores)
                 else:
                     if event.key == pygame.K_ESCAPE:  # Si se presiona 'Esc', regresa al menú principal
                         in_menu = True
