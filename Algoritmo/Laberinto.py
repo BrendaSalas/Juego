@@ -7,225 +7,102 @@ pygame.init()
 
 # Dimensiones de la pantalla
 SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 400
+SCREEN_HEIGHT = 200  # Menor altura para un juego 1D
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Colores
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-
-# Fuente: Usar fuente del sistema
-font_large = pygame.font.SysFont('Arial', 50)  # Fuente grande para el título
-font_medium = pygame.font.SysFont('Arial', 36)  # Fuente mediana para el resto
+GREEN = (0, 255, 0)  # Color para el jugador
+BLACK = (0, 0, 0)  # Color para las paredes
 
 # Velocidad del jugador
 PLAYER_SPEED = 5
-HEADER_HEIGHT = 50  # Altura del área del encabezado
-
-# FPS (Frames por segundo)
-FPS = 60
-clock = pygame.time.Clock()
 
 
 # Clase para el Jugador
 class Player:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 20, 20)
+    def __init__(self, position):
+        self.position = position  # Posición en el eje X
 
-    def move(self, dx, dy):
-        if 0 <= self.rect.x + dx <= SCREEN_WIDTH - 20:
-            self.rect.x += dx
-        if 0 <= self.rect.y + dy <= SCREEN_HEIGHT - HEADER_HEIGHT - 20:  # Ajusta para la altura del encabezado
-            self.rect.y += dy
+    def move(self, dx):
+        if 0 <= self.position + dx <= (SCREEN_WIDTH // 10 - 1):  # Para ajustar a la longitud del laberinto
+            self.position += dx
 
     def draw(self, screen):
-        pygame.draw.rect(screen, BLACK, self.rect)
+        # Representar el jugador como '.'
+        text_surface = font.render('.', True, GREEN)
+        screen.blit(text_surface, (self.position * 10 + 10, SCREEN_HEIGHT // 2 - 30))  # Posicionar el jugador
 
 
 # Clase para el Laberinto
 class Maze:
-    def __init__(self, level):
-        self.walls = []
-        self.create_maze(level)
+    def __init__(self):
+        self.walls = self.create_walls()
 
-    def create_maze(self, level):
-        # Genera más paredes conforme aumenta el nivel
-        for _ in range(level * 2):  # Aumentar el número de paredes según el nivel
-            wall_x = random.randint(0, SCREEN_WIDTH - 100)
-            wall_y = random.randint(HEADER_HEIGHT, SCREEN_HEIGHT - 100)
-            wall_width = random.randint(50, 150)
-            wall_height = random.randint(10, 20)
-            self.walls.append(pygame.Rect(wall_x, wall_y, wall_width, wall_height))
+    def create_walls(self):
+        # Generar algunas paredes en posiciones aleatorias
+        wall_positions = random.sample(range(1, SCREEN_WIDTH // 10 - 1), 5)  # Evitar el inicio y fin
+        return sorted(wall_positions)
 
     def draw(self, screen):
-        for wall in self.walls:
-            pygame.draw.rect(screen, BLACK, wall)
+        for pos in self.walls:
+            # Representar las paredes como números
+            text_surface = font.render('1', True, BLACK)
+            screen.blit(text_surface, (pos * 10 + 10, SCREEN_HEIGHT // 2 - 30))  # Posicionar las paredes
 
 
 # Clase Juego principal
 class Game:
-    def __init__(self, player_name):
-        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
-        self.score = 0
-        self.level = 1
+    def __init__(self):
+        self.player = Player(0)  # El jugador empieza en la posición 0
+        self.maze = Maze()
         self.game_over = False
-        self.player_name = player_name
-        self.scores_per_level = []  # Lista para almacenar los puntajes por nivel
-        self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)  # Línea de meta
-        self.maze = Maze(self.level)  # Generar laberinto para el nivel actual
-        self.player_speed = PLAYER_SPEED  # Ajuste de velocidad
-
-    def reset(self):
-        # Reinicia el juego al chocar con una pared o ganar un nivel
-        self.level = 1
-        self.score = 0
-        self.player_speed = PLAYER_SPEED
-        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
-        self.maze = Maze(self.level)
-        self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)
 
     def check_collision(self):
-        # Verifica si el jugador choca con alguna pared
-        for wall in self.maze.walls:
-            if self.player.rect.colliderect(wall):
-                self.show_game_over()  # Muestra mensaje de "Has perdido"
-                self.reset()  # Reinicia el juego
-                break
+        # Verifica si el jugador colisiona con una pared
+        if self.player.position in self.maze.walls:
+            self.game_over = True
 
-    def check_finish(self):
-        # Verifica si el jugador ha alcanzado la línea de meta
-        if self.player.rect.colliderect(self.finish_line):
-            self.level += 1
-            self.maze = Maze(self.level)  # Generar un nuevo laberinto con más dificultad
-            self.player = Player(20, HEADER_HEIGHT + 20)  # Coloca al jugador en la posición inicial
-            self.finish_line = pygame.Rect(random.randint(400, SCREEN_WIDTH - 40),
-                                           random.randint(200, SCREEN_HEIGHT - 80), 20, 80)
-            self.score += 100  # Aumenta el puntaje al completar el nivel
-            self.player_speed += 1  # Aumenta la velocidad del jugador
-
-    def update(self, keys):
-        # Movimiento con teclas de flechas o WASD
+    def update(self):
+        keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.player.move(-self.player_speed, 0)
+            self.player.move(-1)
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.player.move(self.player_speed, 0)
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.player.move(0, -self.player_speed)
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.player.move(0, self.player_speed)
+            self.player.move(1)
 
         self.check_collision()
-        self.check_finish()
 
     def draw(self):
         screen.fill(WHITE)  # Fondo blanco
-        # Dibuja el área del encabezado
-        pygame.draw.rect(screen, WHITE, (0, 0, SCREEN_WIDTH, HEADER_HEIGHT))
         self.maze.draw(screen)
         self.player.draw(screen)
-        pygame.draw.rect(screen, BLACK, self.finish_line)  # Dibuja la línea de meta
-        self.draw_score()
-
-    def draw_score(self):
-        score_text = font_medium.render(f"{self.player_name} - Nivel: {self.level} - Puntos: {self.score}", True, BLACK)
-        screen.blit(score_text, (10, 10))
-
-    def show_game_over(self):
-        # Muestra un mensaje de "Has perdido" y pausa por 2 segundos
-        screen.fill(WHITE)
-        game_over_text = font_large.render("¡Has perdido!", True, RED)
-        text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-        screen.blit(game_over_text, text_rect)
-        pygame.display.flip()
-        time.sleep(2)  # Pausa por 2 segundos antes de reiniciar el juego
 
 
-# Función para capturar el nombre del jugador
-def get_player_name():
-    name = ""
-    input_active = True
-
-    while input_active:
-        screen.fill(WHITE)  # Fondo blanco para capturar el nombre
-        prompt = font_medium.render("Nombre del jugador:", True, BLACK)  # Cambiado el texto
-        screen.blit(prompt, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 50))
-
-        name_text = font_medium.render(name, True, BLACK)
-        screen.blit(name_text, (SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2))
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and len(name) == 5:
-                    input_active = False  # Sale del bucle si el nombre tiene 5 letras
-                elif event.key == pygame.K_BACKSPACE:
-                    name = name[:-1]
-                elif len(name) < 5 and event.unicode.isalpha():
-                    name += event.unicode.upper()
-
-    return name
+# Fuente
+font = pygame.font.Font(None, 60)  # Fuente predeterminada
 
 
-# Menú principal
-def main_menu():
-    while True:
-        screen.fill(WHITE)  # Fondo blanco para el menú principal
-        title = font_large.render("PinkMaze", True, BLACK)
-        screen.blit(title, (SCREEN_WIDTH // 2 - 100, 50))  # Centrar el título
-
-        options = [
-            "1. Comenzar nueva partida",
-            "2. Instrucciones",
-            "3. Ver tabla de puntajes"
-        ]
-
-        for i, option in enumerate(options):
-            text = font_medium.render(option, True, BLACK)
-            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 150 + i * 50))  # Alinear al centro
-            screen.blit(text, text_rect)
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
-                    player_name = get_player_name()
-                    game = Game(player_name)
-                    run_game(game)
-                if event.key == pygame.K_2:
-                    show_instructions()
-                if event.key == pygame.K_3:
-                    game.show_score_table()
-
-
-# Función principal del juego
-def run_game(game):
+def main():
     running = True
+    game = Game()
 
     while running:
-        keys = pygame.key.get_pressed()
-        game.update(keys)
-        game.draw()
-        pygame.display.flip()
-        clock.tick(FPS)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False  # Sale del juego
+
+        game.update()
+        game.draw()
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
+
+        if game.game_over:
+            print("Game Over! Reiniciando el juego...")
+            time.sleep(1)
+            game = Game()  # Reinicia el juego
 
     pygame.quit()
 
 
 if __name__ == "__main__":
-    main_menu()
+    main()
