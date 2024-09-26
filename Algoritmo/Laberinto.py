@@ -44,15 +44,18 @@ class Player:
 
 # Clase para el Laberinto
 class Maze:
-    def __init__(self):
+    def __init__(self, level):
         self.walls = []
-        self.create_maze()
+        self.create_maze(level)
 
-    def create_maze(self):
-        # Genera un laberinto muy sencillo
-        # Solo un par de paredes para crear un camino
-        self.walls.append(pygame.Rect(100, HEADER_HEIGHT + 100, 200, 20))  # Una pared horizontal
-        self.walls.append(pygame.Rect(300, HEADER_HEIGHT + 100, 20, 200))  # Una pared vertical
+    def create_maze(self, level):
+        # Genera más paredes conforme aumenta el nivel
+        for _ in range(level * 2):  # Aumentar el número de paredes según el nivel
+            wall_x = random.randint(0, SCREEN_WIDTH - 100)
+            wall_y = random.randint(HEADER_HEIGHT, SCREEN_HEIGHT - 100)
+            wall_width = random.randint(50, 150)
+            wall_height = random.randint(10, 20)
+            self.walls.append(pygame.Rect(wall_x, wall_y, wall_width, wall_height))
 
     def draw(self, screen):
         for wall in self.walls:
@@ -63,21 +66,26 @@ class Maze:
 class Game:
     def __init__(self, player_name):
         self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
-        self.maze = Maze()
         self.score = 0
         self.level = 1
         self.game_over = False
         self.player_name = player_name
         self.scores_per_level = []  # Lista para almacenar los puntajes por nivel
         self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)  # Línea de meta
+        self.maze = Maze(self.level)  # Generar laberinto para el nivel actual
+        self.player_speed = PLAYER_SPEED  # Ajuste de velocidad
 
     def reset(self):
         # Almacena el puntaje actual en la lista antes de resetear
         self.scores_per_level.append(self.score)
-        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
-        self.maze = Maze()
-        self.score = 0
         self.level += 1
+        self.maze = Maze(self.level)  # Aumenta la dificultad del laberinto
+        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
+        self.score = 0
+        self.player_speed += 1  # Aumentar la velocidad del jugador en cada nivel
+        # Cambiar la posición de la línea de meta para que sea más difícil
+        self.finish_line = pygame.Rect(random.randint(400, SCREEN_WIDTH - 40), random.randint(200, SCREEN_HEIGHT - 80),
+                                       20, 80)
 
     def check_collision(self):
         # Verifica si el jugador choca con alguna pared
@@ -94,13 +102,13 @@ class Game:
     def update(self, keys):
         # Movimiento con teclas de flechas o WASD
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.player.move(-PLAYER_SPEED, 0)
+            self.player.move(-self.player_speed, 0)
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.player.move(PLAYER_SPEED, 0)
+            self.player.move(self.player_speed, 0)
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.player.move(0, -PLAYER_SPEED)
+            self.player.move(0, -self.player_speed)
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.player.move(0, PLAYER_SPEED)
+            self.player.move(0, self.player_speed)
 
         self.check_collision()
         self.check_finish()
@@ -140,7 +148,7 @@ def show_instructions():
         "2. Evita las paredes.",
         "3. Gana puntos por completar el laberinto.",
         "4. Llega a la línea de meta para avanzar.",
-        "5. ¡Buena suerte!",
+        "5. Los niveles aumentan en dificultad.",
         "Presiona 'Esc' para regresar al menú principal."
     ]
     for i, line in enumerate(instructions):
@@ -186,13 +194,17 @@ def main_menu():
     while True:
         screen.fill(WHITE)  # Fondo blanco para el menú principal
         title = font_large.render("PinkMaze", True, BLACK)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))  # Centrar el título
-        screen.blit(title, title_rect)
+        screen.blit(title, (SCREEN_WIDTH // 2 - 100, 50))  # Centrar el título
 
-        options = ["Comenzar nueva partida (1)", "Instrucciones (2)", "Ver puntajes (3)"]  # Nuevas opciones
+        options = [
+            "1. Comenzar nueva partida",
+            "2. Instrucciones",
+            "3. Ver tabla de puntajes"
+        ]
+
         for i, option in enumerate(options):
             text = font_medium.render(option, True, BLACK)
-            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 200 + i * 50))  # Centrar las opciones
+            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 150 + i * 50))  # Alinear al centro
             screen.blit(text, text_rect)
 
         pygame.display.flip()
@@ -203,45 +215,35 @@ def main_menu():
                 quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
-                    return  # Sale del menú y empieza el juego
-                elif event.key == pygame.K_2:
+                    player_name = get_player_name()
+                    game = Game(player_name)
+                    run_game(game)
+                if event.key == pygame.K_2:
                     show_instructions()
-                elif event.key == pygame.K_3:
-                    return "scores"  # Para ver la tabla de puntajes
+                if event.key == pygame.K_3:
+                    game.show_score_table()
 
 
-# Iniciar el juego
-def main():
+# Función principal del juego
+def run_game(game):
     running = True
-    player_name = ""
-    game_scores = []
 
     while running:
-        # Menú principal se muestra al inicio
-        option = main_menu()  # Maneja el menú
-        if option == "scores":
-            game = Game(player_name)
-            game.show_score_table()  # Muestra la tabla de puntajes
-        else:
-            player_name = get_player_name()  # Pide el nombre al iniciar una nueva partida
-            game = Game(player_name)
-            while not game.game_over:
-                keys = pygame.key.get_pressed()
-                game.update(keys)
-                game.draw()
-                pygame.display.flip()
-                clock.tick(FPS)
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
-                            running = False  # Sale del juego
+        keys = pygame.key.get_pressed()
+        game.update(keys)
+        game.draw()
+        pygame.display.flip()
+        clock.tick(FPS)
 
-            game_scores.append(game.score)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False  # Sale del juego
 
     pygame.quit()
 
 
 if __name__ == "__main__":
-    main()
+    main_menu()
