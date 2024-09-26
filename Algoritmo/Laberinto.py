@@ -13,6 +13,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 # Colores
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+RED = (255, 0, 0)
 
 # Fuente: Usar fuente del sistema
 font_large = pygame.font.SysFont('Arial', 50)  # Fuente grande para el título
@@ -76,28 +77,32 @@ class Game:
         self.player_speed = PLAYER_SPEED  # Ajuste de velocidad
 
     def reset(self):
-        # Almacena el puntaje actual en la lista antes de resetear
-        self.scores_per_level.append(self.score)
-        self.level += 1
-        self.maze = Maze(self.level)  # Aumenta la dificultad del laberinto
-        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
+        # Reinicia el juego al chocar con una pared o ganar un nivel
+        self.level = 1
         self.score = 0
-        self.player_speed += 1  # Aumentar la velocidad del jugador en cada nivel
-        # Cambiar la posición de la línea de meta para que sea más difícil
-        self.finish_line = pygame.Rect(random.randint(400, SCREEN_WIDTH - 40), random.randint(200, SCREEN_HEIGHT - 80),
-                                       20, 80)
+        self.player_speed = PLAYER_SPEED
+        self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
+        self.maze = Maze(self.level)
+        self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)
 
     def check_collision(self):
         # Verifica si el jugador choca con alguna pared
         for wall in self.maze.walls:
             if self.player.rect.colliderect(wall):
-                self.game_over = True
+                self.show_game_over()  # Muestra mensaje de "Has perdido"
+                self.reset()  # Reinicia el juego
                 break
 
     def check_finish(self):
         # Verifica si el jugador ha alcanzado la línea de meta
         if self.player.rect.colliderect(self.finish_line):
-            self.reset()  # Reinicia el juego al llegar a la meta
+            self.level += 1
+            self.maze = Maze(self.level)  # Generar un nuevo laberinto con más dificultad
+            self.player = Player(20, HEADER_HEIGHT + 20)  # Coloca al jugador en la posición inicial
+            self.finish_line = pygame.Rect(random.randint(400, SCREEN_WIDTH - 40),
+                                           random.randint(200, SCREEN_HEIGHT - 80), 20, 80)
+            self.score += 100  # Aumenta el puntaje al completar el nivel
+            self.player_speed += 1  # Aumenta la velocidad del jugador
 
     def update(self, keys):
         # Movimiento con teclas de flechas o WASD
@@ -126,37 +131,14 @@ class Game:
         score_text = font_medium.render(f"{self.player_name} - Nivel: {self.level} - Puntos: {self.score}", True, BLACK)
         screen.blit(score_text, (10, 10))
 
-    def show_score_table(self):
-        screen.fill(WHITE)  # Fondo blanco en la tabla de puntajes
-        title = font_medium.render("Tabla de Puntajes", True, BLACK)
-        screen.blit(title, (SCREEN_WIDTH // 2 - 100, 20))
-
-        # Mostrar los puntajes obtenidos en cada nivel
-        for i, score in enumerate(self.scores_per_level):
-            level_text = font_medium.render(f"Nivel {i + 1}: {score} puntos", True, BLACK)
-            screen.blit(level_text, (SCREEN_WIDTH // 2 - 100, 80 + i * 40))
-
+    def show_game_over(self):
+        # Muestra un mensaje de "Has perdido" y pausa por 2 segundos
+        screen.fill(WHITE)
+        game_over_text = font_large.render("¡Has perdido!", True, RED)
+        text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.blit(game_over_text, text_rect)
         pygame.display.flip()
-        time.sleep(5)
-
-
-def show_instructions():
-    screen.fill(WHITE)  # Fondo blanco para las instrucciones
-    instructions = [
-        "Instrucciones:",
-        "1. Usa las teclas de flecha o WASD para moverte.",
-        "2. Evita las paredes.",
-        "3. Gana puntos por completar el laberinto.",
-        "4. Llega a la línea de meta para avanzar.",
-        "5. Los niveles aumentan en dificultad.",
-        "Presiona 'Esc' para regresar al menú principal."
-    ]
-    for i, line in enumerate(instructions):
-        text = font_medium.render(line, True, BLACK)
-        text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 50 + i * 40))  # Alinear al centro
-        screen.blit(text, text_rect)
-    pygame.display.flip()
-    time.sleep(5)
+        time.sleep(2)  # Pausa por 2 segundos antes de reiniciar el juego
 
 
 # Función para capturar el nombre del jugador
