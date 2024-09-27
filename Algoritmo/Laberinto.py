@@ -45,47 +45,45 @@ class Player:
         pygame.draw.rect(screen, BLACK, self.rect)
 
 
-# Clase para el Laberinto
+# Clase para el Laberinto con algoritmo de backtracking recursivo
 class Maze:
-    def __init__(self, level):
-        self.walls = []
-        self.grid_size = 15  # Tamaño de la cuadrícula para generar paredes
-        self.create_maze(level)
+    def __init__(self, grid_size):
+        self.grid_size = grid_size
+        self.cell_width = SCREEN_WIDTH // self.grid_size
+        self.cell_height = (SCREEN_HEIGHT - HEADER_HEIGHT) // self.grid_size
+        self.visited = [[False for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self.grid = [[1 for _ in range(self.grid_size)] for _ in range(self.grid_size)]  # 1 = pared, 0 = camino
+        self.generate_maze(0, 0)  # Genera el laberinto desde la esquina superior izquierda
 
-    def create_maze(self, level):
-        # Genera un laberinto más estructurado en una cuadrícula
-        cell_width = SCREEN_WIDTH // self.grid_size
-        cell_height = (SCREEN_HEIGHT - HEADER_HEIGHT) // self.grid_size
+    def generate_maze(self, x, y):
+        self.visited[y][x] = True
+        self.grid[y][x] = 0  # Marcar la celda como parte del camino
 
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                if random.choice([True, False]):
-                    # Crear paredes horizontales o verticales
-                    if random.choice([True, False]):
-                        wall_x = col * cell_width
-                        wall_y = row * cell_height + HEADER_HEIGHT
-                        wall_width = cell_width
-                        wall_height = 10
-                    else:
-                        wall_x = col * cell_width
-                        wall_y = row * cell_height + HEADER_HEIGHT
-                        wall_width = 10
-                        wall_height = cell_height
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        random.shuffle(directions)  # Mezcla las direcciones para generar caminos aleatorios
 
-                    wall_rect = pygame.Rect(wall_x, wall_y, wall_width, wall_height)
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
 
-                    # Evitar que las paredes interfieran con la meta
-                    if not self.is_wall_blocking_goal(wall_rect):
-                        self.walls.append(wall_rect)
+            if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size and not self.visited[ny][nx]:
+                # Crear el camino entre las celdas
+                if dx == 1:  # Mover derecha
+                    self.grid[y][x + 1] = 0
+                elif dx == -1:  # Mover izquierda
+                    self.grid[y][x - 1] = 0
+                elif dy == 1:  # Mover abajo
+                    self.grid[y + 1][x] = 0
+                elif dy == -1:  # Mover arriba
+                    self.grid[y - 1][x] = 0
 
-    def is_wall_blocking_goal(self, wall_rect):
-        # Verifica si la pared está bloqueando el área de la meta
-        goal_area = pygame.Rect(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 80, 60, 80)
-        return wall_rect.colliderect(goal_area)
+                self.generate_maze(nx, ny)
 
     def draw(self, screen):
-        for wall in self.walls:
-            pygame.draw.rect(screen, BLACK, wall)
+        for y in range(self.grid_size):
+            for x in range(self.grid_size):
+                if self.grid[y][x] == 1:  # Dibuja las paredes
+                    pygame.draw.rect(screen, BLACK, (
+                    x * self.cell_width, y * self.cell_height + HEADER_HEIGHT, self.cell_width, self.cell_height))
 
 
 # Clase Juego principal
@@ -97,33 +95,36 @@ class Game:
         self.game_over = False
         self.player_name = player_name
         self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)  # Línea de meta
-        self.maze = Maze(self.level)  # Generar laberinto para el nivel actual
+        self.maze = Maze(15)  # Generar laberinto para el nivel actual
 
     def reset(self):
-        # Reinicia el juego al chocar con una pared o ganar un nivel
         self.level = 1
         self.score = 0
         self.player = Player(20, HEADER_HEIGHT + 20)  # Ajusta la posición inicial del jugador
-        self.maze = Maze(self.level)
+        self.maze = Maze(15)
         self.finish_line = pygame.Rect(SCREEN_WIDTH - 40, SCREEN_HEIGHT - 80, 20, 80)
 
     def check_collision(self):
         # Verifica si el jugador choca con alguna pared
-        for wall in self.maze.walls:
-            if self.player.rect.colliderect(wall):
-                self.show_game_over()  # Muestra mensaje de "Has perdido"
-                self.reset()  # Reinicia el juego
-                break
+        for y in range(self.maze.grid_size):
+            for x in range(self.maze.grid_size):
+                if self.maze.grid[y][x] == 1:
+                    wall_rect = pygame.Rect(x * self.maze.cell_width, y * self.maze.cell_height + HEADER_HEIGHT,
+                                            self.maze.cell_width, self.maze.cell_height)
+                    if self.player.rect.colliderect(wall_rect):
+                        self.show_game_over()
+                        self.reset()
+                        return
 
     def check_finish(self):
         # Verifica si el jugador ha alcanzado la línea de meta
         if self.player.rect.colliderect(self.finish_line):
             self.level += 1
-            self.maze = Maze(self.level)  # Generar un nuevo laberinto con más dificultad
-            self.player = Player(20, HEADER_HEIGHT + 20)  # Coloca al jugador en la posición inicial
+            self.maze = Maze(15)
+            self.player = Player(20, HEADER_HEIGHT + 20)
             self.finish_line = pygame.Rect(random.randint(400, SCREEN_WIDTH - 40),
                                            random.randint(200, SCREEN_HEIGHT - 80), 20, 80)
-            self.score += 100  # Aumenta el puntaje al completar el nivel
+            self.score += 100
 
     def update(self, keys):
         # Movimiento con teclas de flechas o WASD
@@ -141,11 +142,9 @@ class Game:
 
     def draw(self):
         screen.fill(WHITE)  # Fondo blanco
-        # Dibuja el área del encabezado
-        pygame.draw.rect(screen, WHITE, (0, 0, SCREEN_WIDTH, HEADER_HEIGHT))
+        pygame.draw.rect(screen, GREEN, self.finish_line)  # Dibuja la línea de meta en verde
         self.maze.draw(screen)
         self.player.draw(screen)
-        pygame.draw.rect(screen, GREEN, self.finish_line)  # Dibuja la línea de meta de color verde
         self.draw_score()
 
     def draw_score(self):
@@ -162,14 +161,14 @@ class Game:
         time.sleep(2)  # Pausa por 2 segundos antes de reiniciar el juego
 
 
-# Función para capturar el nombre del jugador
+# Función para capturar el nombre del jugador en una ventana aparte
 def get_player_name():
     name = ""
     input_active = True
 
     while input_active:
-        screen.fill(WHITE)  # Fondo blanco para capturar el nombre
-        prompt = font_medium.render("Nombre del jugador:", True, BLACK)  # Cambiado el texto
+        screen.fill(WHITE)  # Fondo blanco
+        prompt = font_medium.render("Nombre del jugador:", True, BLACK)  # Texto de solicitud
         screen.blit(prompt, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 50))
 
         name_text = font_medium.render(name, True, BLACK)
@@ -182,32 +181,53 @@ def get_player_name():
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    input_active = False  # Sale del bucle al presionar ENTER
+                if event.key == pygame.K_RETURN and len(name) > 0:  # Acepta cualquier longitud de nombre
+                    input_active = False
                 elif event.key == pygame.K_BACKSPACE:
                     name = name[:-1]
-                elif event.unicode.isalpha() or event.unicode.isspace():  # Permitir letras y espacios
+                elif event.unicode.isalpha():
                     name += event.unicode.upper()
 
     return name
 
 
+# Pantalla de instrucciones
+def show_instructions():
+    while True:
+        screen.fill(WHITE)
+        instructions_title = font_large.render("Instrucciones", True, BLACK)
+        screen.blit(instructions_title, (SCREEN_WIDTH // 2 - 150, 50))
+
+        instructions_text = [
+            "Usa las teclas de flechas o WASD para moverte.",
+            "Llega a la meta verde sin chocar con las paredes.",
+            "Pulsa ENTER para ir a la pantalla de nombre."
+        ]
+
+        for i, text in enumerate(instructions_text):
+            instruction_line = font_medium.render(text, True, BLACK)
+            screen.blit(instruction_line, (50, 150 + i * 50))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return  # Sale a la pantalla de nombre
+
+
 # Menú principal
 def main_menu():
     while True:
-        screen.fill(WHITE)  # Fondo blanco para el menú principal
+        screen.fill(WHITE)
         title = font_large.render("PinkMaze", True, BLACK)
-        screen.blit(title, (SCREEN_WIDTH // 2 - 100, 50))  # Centrar el título
+        screen.blit(title, (SCREEN_WIDTH // 2 - 100, 50))
 
-        options = [
-            "Presiona (1) para iniciar una nueva partida",
-            "Presiona (2) para ver las instrucciones",
-        ]
-
-        for i, option in enumerate(options):
-            text = font_medium.render(option, True, BLACK)
-            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 150 + i * 50))  # Alinear al centro
-            screen.blit(text, text_rect)
+        start_option = font_medium.render("Presiona (1) para iniciar el juego", True, BLACK)
+        screen.blit(start_option, (SCREEN_WIDTH // 2 - 200, 200))
 
         pygame.display.flip()
 
@@ -217,11 +237,10 @@ def main_menu():
                 quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
-                    player_name = get_player_name()
+                    show_instructions()  # Muestra las instrucciones
+                    player_name = get_player_name()  # Luego pide el nombre del jugador
                     game = Game(player_name)
                     run_game(game)
-                if event.key == pygame.K_2:
-                    show_instructions()
 
 
 # Función principal del juego
@@ -240,31 +259,9 @@ def run_game(game):
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False  # Sale del juego
+                    running = False
 
     pygame.quit()
-
-
-def show_instructions():
-    while True:
-        screen.fill(WHITE)
-        instructions_text = font_medium.render("Usa las flechas o WASD para moverte.", True, BLACK)
-        text_rect = instructions_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-        screen.blit(instructions_text, text_rect)
-
-        back_text = font_medium.render("Presiona ESC para regresar", True, BLACK)
-        back_rect = back_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
-        screen.blit(back_text, back_rect)
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return  # Regresa al menú principal
 
 
 if __name__ == "__main__":
