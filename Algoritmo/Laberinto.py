@@ -8,6 +8,7 @@ pygame.init()
 # Dimensiones de la pantalla
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 400
+CELL_SIZE = 40  # Tamaño de las celdas en el laberinto
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Colores
@@ -48,16 +49,39 @@ class Player:
 class Maze:
     def __init__(self, level):
         self.walls = []
+        self.grid_size = 15  # Tamaño de la cuadrícula para generar paredes
         self.create_maze(level)
 
     def create_maze(self, level):
-        # Genera más paredes conforme aumenta el nivel
-        for _ in range(level * 2):  # Aumentar el número de paredes según el nivel
-            wall_x = random.randint(0, SCREEN_WIDTH - 100)
-            wall_y = random.randint(HEADER_HEIGHT, SCREEN_HEIGHT - 100)
-            wall_width = random.randint(50, 150)
-            wall_height = random.randint(10, 20)
-            self.walls.append(pygame.Rect(wall_x, wall_y, wall_width, wall_height))
+        # Genera un laberinto más estructurado en una cuadrícula
+        cell_width = SCREEN_WIDTH // self.grid_size
+        cell_height = (SCREEN_HEIGHT - HEADER_HEIGHT) // self.grid_size
+
+        for row in range(self.grid_size):
+            for col in range(self.grid_size):
+                if random.choice([True, False]):
+                    # Crear paredes horizontales o verticales
+                    if random.choice([True, False]):
+                        wall_x = col * cell_width
+                        wall_y = row * cell_height + HEADER_HEIGHT
+                        wall_width = cell_width
+                        wall_height = 10
+                    else:
+                        wall_x = col * cell_width
+                        wall_y = row * cell_height + HEADER_HEIGHT
+                        wall_width = 10
+                        wall_height = cell_height
+
+                    wall_rect = pygame.Rect(wall_x, wall_y, wall_width, wall_height)
+
+                    # Evitar que las paredes interfieran con la meta
+                    if not self.is_wall_blocking_goal(wall_rect):
+                        self.walls.append(wall_rect)
+
+    def is_wall_blocking_goal(self, wall_rect):
+        # Verifica si la pared está bloqueando el área de la meta
+        goal_area = pygame.Rect(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 80, 60, 80)
+        return wall_rect.colliderect(goal_area)
 
     def draw(self, screen):
         for wall in self.walls:
@@ -158,11 +182,11 @@ def get_player_name():
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and len(name) == 5:
-                    input_active = False  # Sale del bucle si el nombre tiene 5 letras
+                if event.key == pygame.K_RETURN:
+                    input_active = False  # Sale del bucle al presionar ENTER
                 elif event.key == pygame.K_BACKSPACE:
                     name = name[:-1]
-                elif len(name) < 5 and event.unicode.isalpha():
+                elif event.unicode.isalpha() or event.unicode.isspace():  # Permitir letras y espacios
                     name += event.unicode.upper()
 
     return name
